@@ -1,0 +1,641 @@
+{
+	"info": {
+		"_postman_id": "9f7aa769-8402-4a76-af26-395eb626a71c",
+		"name": "MOTTU API - Sprint 4 QA",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "39308611"
+	},
+	"item": [
+		{
+			"name": "Login",
+			"item": [
+				{
+					"name": "Login e Obter Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code é 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Token foi retornado\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"    pm.environment.set('authToken', jsonData.token);",
+									"});",
+									"",
+									"console.log('Token salvo com sucesso!');"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"username\": \"admin\",\r\n  \"password\": \"password\"\r\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/AuthApi/login"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "CRUD Filial",
+			"item": [
+				{
+					"name": "CREATE Filial",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code é 200, 201 ou 204\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]);",
+									"});",
+									"",
+									"if (pm.response.code === 204 || pm.response.text() === '') {",
+									"    console.log('API retornou sem body - buscando ID na listagem...');",
+									"    ",
+									"    pm.sendRequest({",
+									"        url: pm.environment.get('baseUrl') + '/api/v1/FilialApi',",
+									"        method: 'GET',",
+									"        header: {",
+									"            'Authorization': 'Bearer ' + pm.environment.get('authToken')",
+									"        }",
+									"    }, function (err, response) {",
+									"        if (!err) {",
+									"            var filiais = response.json();",
+									"            var filialCriada = filiais.find(f => f.nomeFilial === 'Filial Teste Postman');",
+									"            if (filialCriada) {",
+									"                pm.environment.set('novaFilialId', filialCriada.idFilial);",
+									"                console.log('ID encontrado:', filialCriada.idFilial);",
+									"            }",
+									"        }",
+									"    });",
+									"} else {",
+									"    try {",
+									"        var jsonData = pm.response.json();",
+									"        var id = jsonData.idFilial || jsonData.id;",
+									"        if (id) {",
+									"            pm.environment.set('novaFilialId', id);",
+									"            console.log('ID salvo:', id);",
+									"        }",
+									"    } catch (e) {",
+									"        console.log('Erro ao parsear JSON:', e);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{authToken}}"
+							}
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nomeFilial\": \"Filial Teste Postman\",\n  \"endereco\": \"Rua Teste, 123\",\n  \"cidade\": \"São Paulo\",\n  \"estado\": \"SP\",\n  \"pais\": \"Brasil\",\n  \"cep\": \"01234-567\",\n  \"telefone\": \"(11) 98765-4321\"\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/FilialApi"
+					},
+					"response": []
+				},
+				{
+					"name": "READ Filial Criada",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code é 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Filial possui dados corretos\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.idFilial).to.eql(pm.environment.get('novaFilialId'));",
+									"    pm.expect(jsonData.nomeFilial).to.eql('Filial Teste Postman');",
+									"});",
+									"",
+									"pm.test(\"Filial possui endereço\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('endereco');",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{authToken}}"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/FilialApi/{{novaFilialId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "UPDATE Filial",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code é 200 ou 204\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"pm.test(\"Response time aceitável\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(3000);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{authToken}}"
+							}
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"idFilial\": {{novaFilialId}},\n  \"nomeFilial\": \"Filial Teste ATUALIZADA\",\n  \"endereco\": \"Rua Atualizada, 999\",\n  \"cidade\": \"São Paulo\",\n  \"estado\": \"SP\",\n  \"pais\": \"Brasil\",\n  \"cep\": \"01234-567\",\n  \"telefone\": \"(11) 91111-2222\",\n  \"dataInauguracao\": \"2025-11-09T05:36:43.426Z\"\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/FilialApi/{{novaFilialId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "READ Filial Atualizada",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code é 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Nome foi atualizado\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.nomeFilial).to.eql('Filial Teste ATUALIZADA');",
+									"});",
+									"",
+									"pm.test(\"Endereço foi atualizado\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.endereco).to.include('Atualizada');",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{authToken}}"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/FilialApi/{{novaFilialId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE Filial",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code é 200 ou 204\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"pm.test(\"Filial foi deletada\", function () {",
+									"    pm.expect(pm.response.code).to.not.equal(404);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{authToken}}"
+							}
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/FilialApi/{{novaFilialId}}"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "CRUD Patio",
+			"item": [
+				{
+					"name": "CREATE Patio",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code é 200, 201 ou 204\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]);",
+									"});",
+									"",
+									"if (pm.response.code === 204 || pm.response.text() === '') {",
+									"    console.log('API retornou sem body - buscando ID na listagem...');",
+									"    ",
+									"    pm.sendRequest({",
+									"        url: pm.environment.get('baseUrl') + '/api/v1/PatioApi',",
+									"        method: 'GET',",
+									"        header: {",
+									"            'Authorization': 'Bearer ' + pm.environment.get('authToken')",
+									"        }",
+									"    }, function (err, response) {",
+									"        if (!err) {",
+									"            var patios = response.json();",
+									"            var patioCriado = patios.find(f => f.nomePatio === 'Patio Teste Postman');",
+									"            if (patioCriado) {",
+									"                pm.environment.set('novoPatioId', patioCriado.idPatio);",
+									"                console.log('ID encontrado:', patioCriado.idPatio);",
+									"            }",
+									"        }",
+									"    });",
+									"} else {",
+									"    try {",
+									"        var jsonData = pm.response.json();",
+									"        var id = jsonData.idPatio || jsonData.id;",
+									"        if (id) {",
+									"            pm.environment.set('novoPatioId', id);",
+									"            console.log('ID salvo:', id);",
+									"        }",
+									"    } catch (e) {",
+									"        console.log('Erro ao parsear JSON:', e);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{authToken}}"
+							}
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"idFilial\": 1,\n  \"nomePatio\": \"Patio Teste Postman\",\n  \"capacidadeMax\": 100,\n  \"area\": 500,\n  \"descricao\": \"Patio criado via Postman para testes\"\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/PatioApi"
+					},
+					"response": []
+				},
+				{
+					"name": "READ Patio Criado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code é 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Patio possui dados corretos\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.idPatio).to.eql(pm.environment.get('novoPatioId'));",
+									"    pm.expect(jsonData.nomePatio).to.eql('Patio Teste Postman');",
+									"});",
+									"",
+									"pm.test(\"Patio possui capacidade\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('capacidadeMax');",
+									"    pm.expect(jsonData.capacidadeMax).to.eql(100);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{authToken}}"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/PatioApi/{{novoPatioId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "UPDATE Patio",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code é 200 ou 204\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"pm.test(\"Response time aceitável\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(3000);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{authToken}}"
+							}
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"idPatio\": {{novoPatioId}},\n  \"idFilial\": 1,\n  \"nomePatio\": \"Patio Teste ATUALIZADO\",\n  \"capacidadeMax\": 200,\n  \"area\": 750,\n  \"descricao\": \"Patio atualizado via Postman\"\n}"
+						},
+						"url": "{{baseUrl}}/api/v1/PatioApi/{{novoPatioId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "READ Patio Atualizado",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code é 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Nome foi atualizado\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.nomePatio).to.eql('Patio Teste ATUALIZADO');",
+									"});",
+									"",
+									"pm.test(\"Capacidade foi atualizada\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.capacidadeMax).to.eql(200);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{authToken}}"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/PatioApi/{{novoPatioId}}"
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE Patio",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code é 200 ou 204\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+									"});",
+									"",
+									"pm.test(\"Patio foi deletado\", function () {",
+									"    pm.expect(pm.response.code).to.not.equal(404);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{authToken}}"
+							}
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/PatioApi/{{novoPatioId}}"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Listar Filiais com Patios",
+			"item": [
+				{
+					"name": "GET Todas as Filiais",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code é 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Retorna array de filiais\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(Array.isArray(jsonData)).to.be.true;",
+									"});",
+									"",
+									"pm.test(\"Filiais possuem patios\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.length > 0) {",
+									"        pm.expect(jsonData[0]).to.have.property('patios');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{authToken}}"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/FilialApi"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Listar Patios com Receptores WiFi",
+			"item": [
+				{
+					"name": "GET Todos os Patios",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code é 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Retorna array de patios\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(Array.isArray(jsonData)).to.be.true;",
+									"});",
+									"",
+									"pm.test(\"Patios possuem receptores WiFi\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.length > 0 && jsonData[0].receptorWifi) {",
+									"        pm.expect(jsonData[0]).to.have.property('receptorWifi');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{authToken}}"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/v1/PatioApi"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://wa-challenge-mottu.azurewebsites.net",
+			"type": "string"
+		},
+		{
+			"key": "novoPatioId",
+			"value": ""
+		}
+	]
+}
